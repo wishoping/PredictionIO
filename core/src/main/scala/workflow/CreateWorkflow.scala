@@ -278,7 +278,9 @@ object CreateWorkflow extends Logging {
       val pioEnvVars = wfc.env.map(e =>
         e.split(',').flatMap(p =>
           p.split('=') match {
-            case Array(k, v) => List(k -> v)
+            case Array(k, v) =>
+              System.setProperty(k, v)
+              List(k -> v)
             case _ => Nil
           }
         ).toMap

@@ -42,10 +42,18 @@ object Storage extends Logging {
   private val sourceTypesRegex = """PIO_STORAGE_SOURCES_([^_]+)_TYPE""".r
 
   private val sourceKeys: Seq[String] = sys.env.keys.toSeq.flatMap { k =>
-    sourceTypesRegex findFirstIn k match {
+    val keys = sourceTypesRegex findFirstIn k match {
       case Some(sourceTypesRegex(sourceType)) => Seq(sourceType)
       case None => Nil
     }
+    val propKeys = System.getProperties.keysIterator.toSeq.flatMap { pKey =>
+      sourceTypesRegex findFirstIn pKey.toString match {
+        case Some(sourceTypesRegex(sourceType)) => if (!keys.contains(sourceType) ) Seq(sourceType) else Nil
+        case None => Nil
+      }
+    }
+
+    keys ++ propKeys
   }
 
   if (sourceKeys.size == 0) warn("There is no properly configured data source.")
@@ -58,9 +66,9 @@ object Storage extends Logging {
     Option[ClientMeta] = {
     try {
       val keyedPath = sourcesPrefixPath(k)
-      val sourceType = sys.env(prefixPath(keyedPath, "TYPE"))
-      val hosts = sys.env(prefixPath(keyedPath, "HOSTS")).split(',')
-      val ports = sys.env(prefixPath(keyedPath, "PORTS")).split(',').
+      val sourceType = if ( sys.env.contains(prefixPath(keyedPath, "TYPE"))) sys.env(prefixPath(keyedPath, "TYPE")) else System.getProperty(prefixPath(keyedPath, "TYPE"))
+      val hosts = (if ( sys.env.contains(prefixPath(keyedPath, "HOSTS"))) sys.env(prefixPath(keyedPath, "HOSTS")) else System.getProperty(prefixPath(keyedPath, "HOSTS")) ).split(',')
+      val ports = (if ( sys.env.contains(prefixPath(keyedPath, "PORTS"))) sys.env(prefixPath(keyedPath, "PORTS")) else System.getProperty(prefixPath(keyedPath, "PORTS")) ).split(',').
         map(_.toInt)
       val clientConfig = StorageClientConfig(
         hosts = hosts,
@@ -109,10 +117,19 @@ object Storage extends Logging {
     """PIO_STORAGE_REPOSITORIES_([^_]+)_NAME""".r
 
   private val repositoryKeys: Seq[String] = sys.env.keys.toSeq.flatMap { k =>
-    repositoryNamesRegex findFirstIn k match {
+    val keys = repositoryNamesRegex findFirstIn k match {
       case Some(repositoryNamesRegex(repositoryName)) => Seq(repositoryName)
       case None => Nil
     }
+
+    val propKeys = System.getProperties.keysIterator.toSeq.flatMap { pKey =>
+      repositoryNamesRegex findFirstIn pKey.toString match {
+        case Some(repositoryNamesRegex(repositoryName)) => if (!keys.contains(repositoryName) ) Seq(repositoryName) else Nil
+        case None => Nil
+      }
+    }
+
+    keys ++ propKeys
   }
 
   if (repositoryKeys.size == 0)
@@ -130,8 +147,8 @@ object Storage extends Logging {
     repositoryKeys.map(r =>
       try {
         val keyedPath = repositoriesPrefixPath(r)
-        val name = sys.env(prefixPath(keyedPath, "NAME"))
-        val sourceName = sys.env(prefixPath(keyedPath, "SOURCE"))
+        val name = if ( sys.env.contains(prefixPath(keyedPath, "NAME")))  sys.env(prefixPath(keyedPath, "NAME")) else System.getProperty(prefixPath(keyedPath, "NAME"))
+        val sourceName = if ( sys.env.contains(prefixPath(keyedPath, "SOURCE"))) sys.env(prefixPath(keyedPath, "SOURCE")) else System.getProperty(prefixPath(keyedPath, "SOURCE"))
         if (sourceKeys.contains(sourceName)) {
           r -> DataObjectMeta(
             sourceName = sourceName,
