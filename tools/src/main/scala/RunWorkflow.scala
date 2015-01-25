@@ -112,7 +112,7 @@ object RunWorkflow extends Logging {
           "--jars",
           (em.files ++
             Console.builtinEngines(ca.common.pioHome.get).map(
-              _.getCanonicalPath)).mkString(","))
+              _.getCanonicalPath)).filter(_.startsWith("hdfs")).mkString(","))
       } else Seq()) ++
       (if (extraFiles.size > 0)
         Seq("--files", extraFiles.mkString(","))
